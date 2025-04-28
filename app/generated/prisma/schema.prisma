@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  issues    Issue[]
+  replies   Reply[]
+}
+
+// 用户角色枚举
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// 问题模型
+model Issue {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  status      IssueStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  closedAt    DateTime?
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  replies     Reply[]
+}
+
+// 问题状态枚举
+enum IssueStatus {
+  PENDING
+  IN_PROGRESS
+  CLOSED
+}
+
+// 回复模型
+model Reply {
+  id           String   @id @default(uuid())
+  content      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  isAdminReply Boolean  @default(false)
+  issueId      String
+  issue        Issue    @relation(fields: [issueId], references: [id])
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+// 系统设置模型
+model Setting {
+  id                     String   @id @default(uuid())
+  closedIssueDeleteDays  Int      @default(7)
+  pendingIssueDeleteDays Int      @default(30)
+  updatedAt              DateTime @updatedAt
+}

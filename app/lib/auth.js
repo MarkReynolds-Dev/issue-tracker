@@ -1,6 +1,7 @@
 import { prisma } from "./db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -38,15 +39,18 @@ export function verifyToken(token) {
 // 获取当前用户
 export async function getCurrentUser(req) {
   try {
-    const token = req.cookies.token;
+    const cookieStore = cookies();
+    const token = await cookieStore.get("token")?.value;
 
     if (!token) {
+      console.log("未找到token");
       return null;
     }
 
     const decoded = verifyToken(token);
 
     if (!decoded) {
+      console.log("token验证失败");
       return null;
     }
 
@@ -60,8 +64,14 @@ export async function getCurrentUser(req) {
       },
     });
 
+    if (!user) {
+      console.log("未找到用户");
+      return null;
+    }
+
     return user;
   } catch (error) {
+    console.error("获取当前用户时出错:", error);
     return null;
   }
 }

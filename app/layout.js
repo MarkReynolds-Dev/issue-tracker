@@ -20,11 +20,11 @@ export const metadata = {
   description: "高效的问题提交与解决平台",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
   // 尝试从cookie中获取用户信息
   let user = null;
   const cookieStore = cookies();
-  const token = cookieStore.get("token")?.value;
+  const token = await cookieStore.get("token")?.value;
 
   if (token) {
     const decodedToken = verifyToken(token);

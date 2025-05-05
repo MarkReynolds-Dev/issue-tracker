@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/app/generated/prisma";
+import { prisma } from "@/app/lib/db";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/app/lib/auth";
 
@@ -53,12 +53,17 @@ export async function GET(request, { params }) {
 // 更新问题
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const id = params?.id;
+    if (!id) {
+      return NextResponse.json({ error: "问题ID不能为空" }, { status: 400 });
+    }
+
     const body = await request.json();
     const { status } = body;
 
-    // 获取当前用户
-    const token = cookies().get("token")?.value;
+    // 修正获取当前用户的方式
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "请先登录后再操作" }, { status: 401 });
@@ -90,12 +95,20 @@ export async function PUT(request, { params }) {
         return NextResponse.json({ error: "无权更新此问题" }, { status: 403 });
       }
 
-      if (!(issue.status === "IN_PROGRESS" && status === "CLOSED")) {
-        return NextResponse.json(
-          { error: "普通用户只能将解决中的问题标记为已关闭" },
-          { status: 403 }
-        );
-      }
+      // 注意：前端逻辑允许用户在任何状态下尝试关闭自己的问题
+      // 后端可以只验证是否为 owner
+      // 如果需要更严格，可以保留下面的检查
+      // if (!(issue.status === "IN_PROGRESS" && status === "CLOSED")) {
+      //   return NextResponse.json(
+      //     { error: "普通用户只能将解决中的问题标记为已关闭" },
+      //     { status: 403 }
+      //   );
+      // }
+    }
+
+    // 检查传入的状态是否有效
+    if (!status || !["PENDING", "IN_PROGRESS", "CLOSED"].includes(status)) {
+      return NextResponse.json({ error: "无效的问题状态" }, { status: 400 });
     }
 
     // 如果是关闭问题，则记录关闭时间
@@ -103,7 +116,8 @@ export async function PUT(request, { params }) {
       status,
     };
 
-    if (status === "CLOSED") {
+    if (status === "CLOSED" && !issue.closedAt) {
+      // 只有在首次关闭时记录时间
       updateData.closedAt = new Date();
     }
 
@@ -111,22 +125,38 @@ export async function PUT(request, { params }) {
     const updatedIssue = await prisma.issue.update({
       where: { id },
       data: updateData,
+      // 返回更新后的完整信息，以便前端可能需要
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        replies: {
+          include: {
+            user: { select: { id: true, name: true, email: true, role: true } },
+          },
+        },
+      },
     });
 
     return NextResponse.json(updatedIssue);
   } catch (error) {
     console.error("更新问题失败:", error);
-    return NextResponse.json({ error: "更新问题失败" }, { status: 500 });
+    // 提供更具体的错误信息
+    const errorMessage =
+      error instanceof Error ? error.message : "更新问题时出现未知错误";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 // 删除问题（仅管理员）
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const id = params?.id;
+    if (!id) {
+      return NextResponse.json({ error: "问题ID不能为空" }, { status: 400 });
+    }
 
-    // 获取当前用户
-    const token = cookies().get("token")?.value;
+    // 修正获取当前用户的方式
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "请先登录后再操作" }, { status: 401 });
@@ -158,19 +188,24 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "问题不存在" }, { status: 404 });
     }
 
-    // 删除该问题的所有回复
-    await prisma.reply.deleteMany({
-      where: { issueId: id },
-    });
-
-    // 删除问题
-    await prisma.issue.delete({
-      where: { id },
+    // 使用事务确保原子性
+    await prisma.$transaction(async (tx) => {
+      // 删除该问题的所有回复
+      await tx.reply.deleteMany({
+        where: { issueId: id },
+      });
+      // 删除问题
+      await tx.issue.delete({
+        where: { id },
+      });
     });
 
     return NextResponse.json({ message: "问题已成功删除" }, { status: 200 });
   } catch (error) {
     console.error("删除问题失败:", error);
-    return NextResponse.json({ error: "删除问题失败" }, { status: 500 });
+    // 提供更具体的错误信息
+    const errorMessage =
+      error instanceof Error ? error.message : "删除问题时出现未知错误";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -1,9 +1,8 @@
-import { cookies } from "next/headers";
-import { verifyToken } from "@/app/lib/auth";
 import { redirect } from "next/navigation";
 import ProfileForm from "@/app/components/user/ProfileForm";
 import PasswordForm from "@/app/components/user/PasswordForm";
 import Link from "next/link";
+import { getCurrentUser } from "@/app/lib/auth";
 
 export const metadata = {
   title: "用户中心 - 问题追踪系统",
@@ -11,24 +10,13 @@ export const metadata = {
 };
 
 export default async function ProfilePage() {
-  // 获取当前用户信息
-  const cookieStore = cookies();
-  const token = await cookieStore.get("token")?.value;
+  // 获取当前用户信息 (使用修复后的 getCurrentUser)
+  const user = await getCurrentUser();
 
-  if (!token) {
+  // 如果未登录，重定向
+  if (!user) {
     redirect("/login?redirect=/profile");
   }
-
-  const decodedToken = verifyToken(token);
-  if (!decodedToken) {
-    redirect("/login?redirect=/profile");
-  }
-
-  const user = {
-    id: decodedToken.id,
-    email: decodedToken.email,
-    role: decodedToken.role,
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">

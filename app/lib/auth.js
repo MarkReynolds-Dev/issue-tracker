@@ -37,20 +37,25 @@ export function verifyToken(token) {
 }
 
 // 获取当前用户
-export async function getCurrentUser(req) {
+export async function getCurrentUser() {
   try {
-    const cookieStore = cookies();
-    const token = await cookieStore.get("token")?.value;
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
 
     if (!token) {
-      console.log("未找到token");
+      console.log("未找到token (getCurrentUser)");
       return null;
     }
 
     const decoded = verifyToken(token);
 
     if (!decoded) {
-      console.log("token验证失败");
+      console.log("token验证失败 (getCurrentUser)");
+      return null;
+    }
+
+    if (!decoded.id) {
+      console.error("Decoded token is missing 'id' property.", decoded);
       return null;
     }
 
@@ -65,13 +70,13 @@ export async function getCurrentUser(req) {
     });
 
     if (!user) {
-      console.log("未找到用户");
+      console.log(`未找到 ID 为 ${decoded.id} 的用户 (getCurrentUser)`);
       return null;
     }
 
     return user;
   } catch (error) {
-    console.error("获取当前用户时出错:", error);
+    console.error("获取当前用户时出错 (getCurrentUser):", error);
     return null;
   }
 }

@@ -1,41 +1,33 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
-import { cookies } from "next/headers";
-import { verifyToken } from "@/app/lib/auth";
+// import { cookies } from "next/headers"; // 不再需要直接用 cookies
+// import { verifyToken } from "@/app/lib/auth"; // verifyToken 在 getCurrentUser 内部使用
+import { getCurrentUser } from "@/app/lib/auth"; // 导入 getCurrentUser
 
 // 获取用户信息
 export async function GET(request, { params }) {
   try {
-    const id = params?.id;
+    // Await params directly during destructuring/property access
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: "用户ID不能为空" }, { status: 400 });
     }
 
-    // 验证用户身份
-    const cookieStore = cookies();
-    const token = await cookieStore.get("token")?.value;
+    // 验证用户身份 (使用 getCurrentUser)
+    const accessingUser = await getCurrentUser();
 
-    if (!token) {
+    if (!accessingUser) {
       return NextResponse.json({ error: "未授权" }, { status: 401 });
     }
 
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "会话已过期，请重新登录" },
-        { status: 401 }
-      );
-    }
-
     // 只能查询自己的信息，除非是管理员
-    if (decoded.id !== id && decoded.role !== "ADMIN") {
+    if (accessingUser.id !== id && accessingUser.role !== "ADMIN") {
       return NextResponse.json({ error: "无权访问" }, { status: 403 });
     }
 
-    // 获取用户信息
-    const user = await prisma.user.findUnique({
+    // 获取目标用户信息 (从数据库)
+    const targetUser = await prisma.user.findUnique({
       where: { id },
       select: {
         id: true,
@@ -46,48 +38,38 @@ export async function GET(request, { params }) {
       },
     });
 
-    if (!user) {
+    if (!targetUser) {
       return NextResponse.json({ error: "用户不存在" }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json(targetUser);
   } catch (error) {
     console.error("获取用户信息失败:", error);
-    return NextResponse.json(
-      { error: "获取用户信息时出现错误" },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "获取用户信息时出现错误";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 // 更新用户信息
 export async function PUT(request, { params }) {
   try {
-    const id = params?.id;
+    // Await params directly during destructuring/property access
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: "用户ID不能为空" }, { status: 400 });
     }
 
-    // 验证用户身份
-    const cookieStore = cookies();
-    const token = await cookieStore.get("token")?.value;
+    // 验证用户身份 (使用 getCurrentUser)
+    const accessingUser = await getCurrentUser();
 
-    if (!token) {
+    if (!accessingUser) {
       return NextResponse.json({ error: "未授权" }, { status: 401 });
     }
 
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "会话已过期，请重新登录" },
-        { status: 401 }
-      );
-    }
-
     // 只能修改自己的信息，除非是管理员
-    if (decoded.id !== id && decoded.role !== "ADMIN") {
+    if (accessingUser.id !== id && accessingUser.role !== "ADMIN") {
       return NextResponse.json({ error: "无权操作" }, { status: 403 });
     }
 
@@ -124,9 +106,8 @@ export async function PUT(request, { params }) {
     return NextResponse.json(updatedUser);
   } catch (error) {
     console.error("更新用户信息失败:", error);
-    return NextResponse.json(
-      { error: "更新用户信息时出现错误" },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "更新用户信息时出现未知错误";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

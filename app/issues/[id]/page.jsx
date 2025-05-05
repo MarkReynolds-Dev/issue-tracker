@@ -4,6 +4,7 @@ import { prisma } from "@/app/lib/db";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/app/lib/auth";
 import Link from "next/link";
+import { getCurrentUser } from "@/app/lib/auth";
 
 export async function generateMetadata({ params }) {
   try {
@@ -78,21 +79,8 @@ export default async function IssueDetailPage({ params }) {
       notFound();
     }
 
-    // 获取当前用户信息
-    let currentUser = null;
-    const cookieStore = cookies();
-    const token = await cookieStore.get("token")?.value;
-
-    if (token) {
-      const decoded = verifyToken(token);
-      if (decoded) {
-        currentUser = {
-          id: decoded.id,
-          email: decoded.email,
-          role: decoded.role,
-        };
-      }
-    }
+    // 获取当前用户信息 (使用修复后的 getCurrentUser)
+    const currentUser = await getCurrentUser();
 
     return (
       <div className="container mx-auto px-4 py-8">

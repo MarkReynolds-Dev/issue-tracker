@@ -1,14 +1,12 @@
 import { notFound } from "next/navigation";
 import IssueDetail from "@/app/components/issues/IssueDetail";
 import { prisma } from "@/app/lib/db";
-import { cookies } from "next/headers";
-import { verifyToken } from "@/app/lib/auth";
 import Link from "next/link";
 import { getCurrentUser } from "@/app/lib/auth";
 
 export async function generateMetadata({ params }) {
   try {
-    const id = params?.id;
+    const { id } = await params;
 
     if (!id) {
       return {
@@ -42,7 +40,7 @@ export async function generateMetadata({ params }) {
 
 export default async function IssueDetailPage({ params }) {
   try {
-    const id = params?.id;
+    const { id } = await params;
 
     if (!id) {
       notFound();

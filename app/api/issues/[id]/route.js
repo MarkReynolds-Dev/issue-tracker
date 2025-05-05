@@ -149,7 +149,9 @@ export async function PUT(request, { params }) {
 // 删除问题（仅管理员）
 export async function DELETE(request, { params }) {
   try {
-    const id = params?.id;
+    // Await params directly during destructuring/property access
+    const { id } = await params;
+
     if (!id) {
       return NextResponse.json({ error: "问题ID不能为空" }, { status: 400 });
     }
@@ -180,11 +182,8 @@ export async function DELETE(request, { params }) {
     }
 
     // 查询问题是否存在
-    const issue = await prisma.issue.findUnique({
-      where: { id },
-    });
-
-    if (!issue) {
+    const issueExists = await prisma.issue.count({ where: { id } });
+    if (issueExists === 0) {
       return NextResponse.json({ error: "问题不存在" }, { status: 404 });
     }
 

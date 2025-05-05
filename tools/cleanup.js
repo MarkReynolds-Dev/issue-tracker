@@ -110,3 +110,4 @@ if (process.argv.includes("--run-now")) {
   console.log("手动触发清理任务...");
   cleanupIssues();
 }
+ 

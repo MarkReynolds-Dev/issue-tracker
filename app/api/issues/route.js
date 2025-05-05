@@ -112,37 +112,74 @@ export async function POST(request) {
     const body = await request.json();
     const { title, description } = body;
 
-    // 验证必填字段
     if (!title || !description) {
-      console.log("缺少必填字段");
       return NextResponse.json(
         { error: "请提供问题标题和描述" },
         { status: 400 }
       );
     }
 
-    // 获取当前用户
-    const currentUser = await getCurrentUser(request);
-    console.log("当前用户:", currentUser);
+    const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      console.log("未登录用户尝试提交问题");
       return NextResponse.json(
         { error: "请先登录后再提交问题" },
         { status: 401 }
       );
     }
 
-    // 管理员不能提交问题
-    if (currentUser.role === "ADMIN") {
-      console.log("管理员尝试提交问题");
-      return NextResponse.json(
-        { error: "管理员不能提交问题" },
-        { status: 403 }
-      );
-    }
+    // --- 添加每日限制检查 ---
+    if (currentUser.role !== "ADMIN") {
+      // 1. 获取设置
+      const setting = await prisma.setting.findFirst();
+      const dailyLimit = setting?.dailyIssueLimit ?? 3; // 如果没找到设置或字段，默认为 3
 
-    // 创建新问题
+      // 2. 计算今天范围 (确保时间基于服务器时间)
+      const today = new Date();
+      const startOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        0,
+        0,
+        0,
+        0
+      );
+      const endOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        23,
+        59,
+        59,
+        999
+      );
+
+      // 3. 计算用户今天提交的数量
+      const issuesTodayCount = await prisma.issue.count({
+        where: {
+          userId: currentUser.id,
+          createdAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      });
+
+      // 4. 检查是否超限
+      if (issuesTodayCount >= dailyLimit) {
+        console.log(
+          `用户 ${currentUser.id} 尝试提交问题，已达今日上限 (${issuesTodayCount}/${dailyLimit})`
+        );
+        return NextResponse.json(
+          { error: `您今天已达到提交上限 (${dailyLimit}个问题)` },
+          { status: 429 } // 429 Too Many Requests
+        );
+      }
+    }
+    // --- 限制检查结束 ---
+
+    // 创建新问题 (如果通过检查)
     const newIssue = await prisma.issue.create({
       data: {
         title,
@@ -152,10 +189,12 @@ export async function POST(request) {
       },
     });
 
-    console.log("问题创建成功:", newIssue);
+    console.log(`用户 ${currentUser.id} 成功提交问题 ${newIssue.id}`);
     return NextResponse.json(newIssue, { status: 201 });
   } catch (error) {
     console.error("创建问题失败:", error);
-    return NextResponse.json({ error: "创建问题时出现错误" }, { status: 500 });
+    const errorMessage =
+      error instanceof Error ? error.message : "创建问题时出现未知错误";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

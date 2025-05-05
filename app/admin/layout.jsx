@@ -58,17 +58,14 @@ export default async function AdminLayout({ children }) {
                 问题管理
               </Link>
             </li>
-            {/* 可以在这里添加用户管理、设置等链接 */}
-            {/* <li className="mb-2">
-              <Link href="/admin/users" className="block py-2 px-3 rounded hover:bg-gray-700">
-                用户管理
-              </Link>
-            </li>
             <li className="mb-2">
-              <Link href="/admin/settings" className="block py-2 px-3 rounded hover:bg-gray-700">
+              <Link
+                href="/admin/settings"
+                className="block py-2 px-3 rounded hover:bg-gray-700"
+              >
                 系统设置
               </Link>
-            </li> */}
+            </li>
             <li className="mt-auto pt-4 border-t border-gray-700">
               <Link
                 href="/"

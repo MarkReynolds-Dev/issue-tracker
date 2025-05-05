@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function Navbar({ user }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -32,47 +33,78 @@ export default function Navbar({ user }) {
     }
   };
 
+  const isActive = (href) => pathname === href;
+
+  const commonLinkClasses =
+    "px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out";
+  const activeLinkClasses = "bg-blue-100 text-blue-700";
+  const inactiveLinkClasses =
+    "text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:bg-gray-100 focus:text-gray-900";
+
+  const mobileCommonLinkClasses =
+    "block px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ease-in-out";
+  const mobileActiveLinkClasses = "bg-blue-100 text-blue-700";
+  const mobileInactiveLinkClasses =
+    "text-gray-700 hover:bg-gray-100 hover:text-gray-900";
+
   return (
-    <nav className="bg-white shadow-md py-4">
-      <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link href="/" className="text-xl font-bold text-blue-600">
+    <nav className="bg-white shadow-md sticky top-0 z-50">
+      <div className="container mx-auto px-4 flex justify-between items-center h-16">
+        <Link
+          href="/"
+          className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors duration-150 ease-in-out"
+        >
           问题追踪系统
         </Link>
 
-        {/* 移动端菜单按钮 */}
         <div className="md:hidden">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-gray-500 hover:text-gray-700 focus:outline-none"
+            className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            aria-expanded={isMenuOpen}
           >
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              {isMenuOpen ? (
+            <span className="sr-only">打开主菜单</span>
+            {isMenuOpen ? (
+              <svg
+                className="block h-6 w-6"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
                   d="M6 18L18 6M6 6l12 12"
                 />
-              ) : (
+              </svg>
+            ) : (
+              <svg
+                className="block h-6 w-6"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16m-7 6h7"
+                  d="M4 6h16M4 12h16M4 18h16"
                 />
-              )}
-            </svg>
+              </svg>
+            )}
           </button>
         </div>
 
-        {/* 桌面菜单 */}
-        <div className="hidden md:flex items-center space-x-4">
-          <Link href="/" className="text-gray-600 hover:text-blue-600">
+        <div className="hidden md:flex items-center space-x-2">
+          <Link
+            href="/"
+            className={`${commonLinkClasses} ${isActive("/") ? activeLinkClasses : inactiveLinkClasses}`}
+          >
             首页
           </Link>
 
@@ -80,7 +112,7 @@ export default function Navbar({ user }) {
             <>
               <Link
                 href="/issues/my-issues"
-                className="text-gray-600 hover:text-blue-600"
+                className={`${commonLinkClasses} ${isActive("/issues/my-issues") ? activeLinkClasses : inactiveLinkClasses}`}
               >
                 我的问题
               </Link>
@@ -88,7 +120,7 @@ export default function Navbar({ user }) {
               {user.role !== "ADMIN" && (
                 <Link
                   href="/issues/new"
-                  className="text-gray-600 hover:text-blue-600"
+                  className={`${commonLinkClasses} ${isActive("/issues/new") ? activeLinkClasses : inactiveLinkClasses}`}
                 >
                   提交问题
                 </Link>
@@ -96,7 +128,7 @@ export default function Navbar({ user }) {
 
               <Link
                 href="/profile"
-                className="text-gray-600 hover:text-blue-600"
+                className={`${commonLinkClasses} ${isActive("/profile") ? activeLinkClasses : inactiveLinkClasses}`}
               >
                 用户中心
               </Link>
@@ -104,7 +136,7 @@ export default function Navbar({ user }) {
               {user.role === "ADMIN" && (
                 <Link
                   href="/admin"
-                  className="text-gray-600 hover:text-blue-600"
+                  className={`${commonLinkClasses} ${pathname.startsWith("/admin") ? activeLinkClasses : inactiveLinkClasses}`}
                 >
                   管理后台
                 </Link>
@@ -112,7 +144,7 @@ export default function Navbar({ user }) {
 
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-left"
+                className={`${commonLinkClasses} ${inactiveLinkClasses} bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 focus:bg-red-100 focus:text-red-700`}
               >
                 退出登录
               </button>
@@ -121,13 +153,13 @@ export default function Navbar({ user }) {
             <>
               <Link
                 href="/login"
-                className="px-4 py-2 border border-blue-500 text-blue-500 rounded hover:bg-blue-50"
+                className={`${commonLinkClasses} ${isActive("/login") ? activeLinkClasses : inactiveLinkClasses} border border-transparent hover:border-gray-300`}
               >
                 登录
               </Link>
               <Link
                 href="/register"
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className={`${commonLinkClasses} bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700`}
               >
                 注册
               </Link>
@@ -136,84 +168,78 @@ export default function Navbar({ user }) {
         </div>
       </div>
 
-      {/* 移动端下拉菜单 */}
-      {isMenuOpen && (
-        <div className="md:hidden mt-2 py-2 bg-white shadow-lg rounded-lg">
-          <div className="flex flex-col px-4 space-y-2">
-            <Link
-              href="/"
-              className="text-gray-600 hover:text-blue-600 py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              首页
-            </Link>
-
-            {user ? (
-              <>
+      <div
+        className={`${isMenuOpen ? "block" : "hidden"} md:hidden transition-all duration-300 ease-out`}
+      >
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          <Link
+            href="/"
+            className={`${mobileCommonLinkClasses} ${isActive("/") ? mobileActiveLinkClasses : mobileInactiveLinkClasses}`}
+            onClick={() => setIsMenuOpen(false)}
+          >
+            首页
+          </Link>
+          {user ? (
+            <>
+              <Link
+                href="/issues/my-issues"
+                className={`${mobileCommonLinkClasses} ${isActive("/issues/my-issues") ? mobileActiveLinkClasses : mobileInactiveLinkClasses}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                我的问题
+              </Link>
+              {user.role !== "ADMIN" && (
                 <Link
-                  href="/issues/my-issues"
-                  className="text-gray-600 hover:text-blue-600 py-2"
+                  href="/issues/new"
+                  className={`${mobileCommonLinkClasses} ${isActive("/issues/new") ? mobileActiveLinkClasses : mobileInactiveLinkClasses}`}
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  我的问题
+                  提交问题
                 </Link>
-
-                {user.role !== "ADMIN" && (
-                  <Link
-                    href="/issues/new"
-                    className="text-gray-600 hover:text-blue-600 py-2"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    提交问题
-                  </Link>
-                )}
-
+              )}
+              <Link
+                href="/profile"
+                className={`${mobileCommonLinkClasses} ${isActive("/profile") ? mobileActiveLinkClasses : mobileInactiveLinkClasses}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                用户中心
+              </Link>
+              {user.role === "ADMIN" && (
                 <Link
-                  href="/profile"
-                  className="text-gray-600 hover:text-blue-600 py-2"
+                  href="/admin"
+                  className={`${mobileCommonLinkClasses} ${pathname.startsWith("/admin") ? mobileActiveLinkClasses : mobileInactiveLinkClasses}`}
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  用户中心
+                  管理后台
                 </Link>
-
-                {user.role === "ADMIN" && (
-                  <Link
-                    href="/admin"
-                    className="text-gray-600 hover:text-blue-600 py-2"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    管理后台
-                  </Link>
-                )}
-
-                <button
-                  onClick={handleLogout}
-                  className="text-red-500 hover:text-red-700 py-2 text-left w-full"
-                >
-                  退出登录
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-gray-600 hover:text-blue-600 py-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  登录
-                </Link>
-                <Link
-                  href="/register"
-                  className="text-gray-600 hover:text-blue-600 py-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  注册
-                </Link>
-              </>
-            )}
-          </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className={`${mobileCommonLinkClasses} ${mobileInactiveLinkClasses} text-red-600 hover:bg-red-50 w-full text-left`}
+              >
+                退出登录
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className={`${mobileCommonLinkClasses} ${isActive("/login") ? mobileActiveLinkClasses : mobileInactiveLinkClasses}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                登录
+              </Link>
+              <Link
+                href="/register"
+                className={`${mobileCommonLinkClasses} ${isActive("/register") ? mobileActiveLinkClasses : mobileInactiveLinkClasses}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                注册
+              </Link>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </nav>
   );
 }

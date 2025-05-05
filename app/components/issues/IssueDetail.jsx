@@ -162,7 +162,7 @@ export default function IssueDetail({ issue, currentUser }) {
 
       {/* 问题操作按钮区域 */}
       <div className="flex justify-end items-center space-x-4 mb-8">
-        {canClose && (
+        {canClose && currentIssue.status !== "CLOSED" && (
           <button
             onClick={() => updateIssueStatus("CLOSED")}
             disabled={isUpdating || isDeleting}

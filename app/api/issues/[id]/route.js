@@ -53,7 +53,9 @@ export async function GET(request, { params }) {
 // 更新问题
 export async function PUT(request, { params }) {
   try {
-    const id = params?.id;
+    // Await params directly during destructuring/property access
+    const { id } = await params;
+
     if (!id) {
       return NextResponse.json({ error: "问题ID不能为空" }, { status: 400 });
     }

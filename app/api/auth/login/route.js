@@ -27,8 +27,8 @@ export async function POST(request) {
     const token = generateToken(user);
 
     // 设置Cookie
-    const cookieStore = cookies();
-    await cookieStore.set({
+    const cookieStore = await cookies();
+    cookieStore.set({
       name: "token",
       value: token,
       httpOnly: true,

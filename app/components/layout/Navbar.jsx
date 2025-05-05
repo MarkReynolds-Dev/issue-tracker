@@ -2,9 +2,35 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Navbar({ user }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    setIsMenuOpen(false);
+
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "GET",
+      });
+
+      if (response.ok) {
+        router.push("/");
+        router.refresh();
+      } else {
+        console.error("退出登录请求失败:", response.statusText);
+        router.push("/");
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("退出登录时出错:", error);
+      router.push("/");
+      router.refresh();
+    }
+  };
 
   return (
     <nav className="bg-white shadow-md py-4">
@@ -84,12 +110,12 @@ export default function Navbar({ user }) {
                 </Link>
               )}
 
-              <Link
-                href="/api/auth/logout"
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-left"
               >
                 退出登录
-              </Link>
+              </button>
             </>
           ) : (
             <>
@@ -160,13 +186,12 @@ export default function Navbar({ user }) {
                   </Link>
                 )}
 
-                <Link
-                  href="/api/auth/logout"
-                  className="text-red-500 hover:text-red-700 py-2"
-                  onClick={() => setIsMenuOpen(false)}
+                <button
+                  onClick={handleLogout}
+                  className="text-red-500 hover:text-red-700 py-2 text-left w-full"
                 >
                   退出登录
-                </Link>
+                </button>
               </>
             ) : (
               <>

@@ -23,8 +23,8 @@ export const metadata = {
 export default async function RootLayout({ children }) {
   // 尝试从cookie中获取用户信息
   let user = null;
-  const cookieStore = cookies();
-  const token = await cookieStore.get("token")?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
 
   if (token) {
     const decodedToken = verifyToken(token);

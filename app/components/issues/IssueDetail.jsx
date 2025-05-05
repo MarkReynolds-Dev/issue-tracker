@@ -6,6 +6,7 @@ import { formatDate, statusMap } from "@/app/lib/utils";
 import IssueReplyForm from "./IssueReplyForm";
 import { formatDistanceToNow, addDays, format } from "date-fns";
 import { zhCN } from "date-fns/locale";
+import ConfirmModal from "@/app/components/ui/ConfirmModal";
 
 export default function IssueDetail({ issue, currentUser }) {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function IssueDetail({ issue, currentUser }) {
   const [error, setError] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   // 检查当前用户权限
   const isAdmin = currentUser?.role === "ADMIN";
@@ -61,12 +63,7 @@ export default function IssueDetail({ issue, currentUser }) {
   };
 
   // 处理删除问题
-  const handleDeleteIssue = async () => {
-    if (
-      !window.confirm("确定要永久删除此问题及其所有回复吗？此操作无法撤销。")
-    ) {
-      return;
-    }
+  const handleDeleteIssueConfirmed = async () => {
     setError("");
     setIsDeleting(true);
 
@@ -83,7 +80,7 @@ export default function IssueDetail({ issue, currentUser }) {
 
       // 删除成功后跳转到问题列表页
       router.push(isAdmin ? "/admin/issues" : "/issues/my-issues");
-      router.refresh(); // 可选，确保列表刷新
+      router.refresh();
     } catch (error) {
       setError(error.message);
     } finally {
@@ -173,7 +170,7 @@ export default function IssueDetail({ issue, currentUser }) {
         )}
         {canDelete && (
           <button
-            onClick={handleDeleteIssue}
+            onClick={() => setIsConfirmModalOpen(true)}
             disabled={isDeleting || isUpdating}
             className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -238,6 +235,18 @@ export default function IssueDetail({ issue, currentUser }) {
           <p className="text-gray-600">该问题已关闭，无法添加新回复</p>
         </div>
       )}
+
+      {/* 渲染确认模态框 */}
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleDeleteIssueConfirmed}
+        title="确认删除问题"
+        message={`您确定要永久删除问题 "${currentIssue.title}" 及其所有回复吗？此操作无法撤销。`}
+        confirmText="确认删除"
+        cancelText="取消"
+        confirmVariant="danger"
+      />
     </div>
   );
 }

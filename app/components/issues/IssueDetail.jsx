@@ -62,7 +62,9 @@ export default function IssueDetail({ issue, currentUser }) {
 
   // 处理删除问题
   const handleDeleteIssue = async () => {
-    if (!window.confirm("确定要永久删除此问题及其所有回复吗？此操作无法撤销。")) {
+    if (
+      !window.confirm("确定要永久删除此问题及其所有回复吗？此操作无法撤销。")
+    ) {
       return;
     }
     setError("");
@@ -80,9 +82,8 @@ export default function IssueDetail({ issue, currentUser }) {
       }
 
       // 删除成功后跳转到问题列表页
-      router.push(isAdmin ? "/admin/issues" : "/issues/my-issues"); 
+      router.push(isAdmin ? "/admin/issues" : "/issues/my-issues");
       router.refresh(); // 可选，确保列表刷新
-
     } catch (error) {
       setError(error.message);
     } finally {
@@ -92,18 +93,25 @@ export default function IssueDetail({ issue, currentUser }) {
 
   // 计算自动删除日期
   const calculateAutoDeleteDate = () => {
-    const closedDays = parseInt(process.env.NEXT_PUBLIC_CLOSED_ISSUE_DELETE_DAYS || '7');
-    const pendingDays = parseInt(process.env.NEXT_PUBLIC_PENDING_ISSUE_DELETE_DAYS || '30');
-    
-    if (currentIssue.status === 'CLOSED' && currentIssue.closedAt) {
+    const closedDays = parseInt(
+      process.env.NEXT_PUBLIC_CLOSED_ISSUE_DELETE_DAYS || "7"
+    );
+    const pendingDays = parseInt(
+      process.env.NEXT_PUBLIC_PENDING_ISSUE_DELETE_DAYS || "30"
+    );
+
+    if (currentIssue.status === "CLOSED" && currentIssue.closedAt) {
       const closedDate = new Date(currentIssue.closedAt);
       return addDays(closedDate, closedDays);
     }
     // 简单起见，我们假设 PENDING 或 IN_PROGRESS 都是基于创建时间计算
     // 更复杂的逻辑可以基于 updatedAt 或最后回复时间
-    if (currentIssue.status === 'PENDING' || currentIssue.status === 'IN_PROGRESS') {
-        const createdAtDate = new Date(currentIssue.createdAt);
-        return addDays(createdAtDate, pendingDays);
+    if (
+      currentIssue.status === "PENDING" ||
+      currentIssue.status === "IN_PROGRESS"
+    ) {
+      const createdAtDate = new Date(currentIssue.createdAt);
+      return addDays(createdAtDate, pendingDays);
     }
     return null;
   };
@@ -137,37 +145,41 @@ export default function IssueDetail({ issue, currentUser }) {
 
       {/* 显示自动删除时间提示 */}
       {autoDeleteDate && (
-          <div className="mb-6 text-sm text-orange-600 bg-orange-50 p-3 rounded-md border border-orange-200">
-              注意：此问题预计将在 {format(autoDeleteDate, 'yyyy年MM月dd日 HH:mm', { locale: zhCN })} 左右被自动清理。
-          </div>
+        <div className="mb-6 text-sm text-orange-600 bg-orange-50 p-3 rounded-md border border-orange-200">
+          注意：此问题预计将在{" "}
+          {format(autoDeleteDate, "yyyy年MM月dd日 HH:mm", { locale: zhCN })}{" "}
+          左右被自动清理。
+        </div>
       )}
 
       {/* 问题描述 */}
       <div className="bg-gray-50 p-6 rounded-lg mb-8">
         <h2 className="text-lg font-semibold mb-3">问题描述</h2>
-        <p className="whitespace-pre-wrap">{currentIssue.description}</p>
+        <p className="whitespace-pre-wrap break-words">
+          {currentIssue.description}
+        </p>
       </div>
 
       {/* 问题操作按钮区域 */}
       <div className="flex justify-end items-center space-x-4 mb-8">
-          {canClose && (
-              <button
-                  onClick={() => updateIssueStatus("CLOSED")}
-                  disabled={isUpdating || isDeleting}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                  {isUpdating ? "处理中..." : "标记为已解决"}
-              </button>
-          )}
-          {canDelete && (
-              <button
-                  onClick={handleDeleteIssue}
-                  disabled={isDeleting || isUpdating}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                  {isDeleting ? "删除中..." : "删除问题"}
-              </button>
-          )}
+        {canClose && (
+          <button
+            onClick={() => updateIssueStatus("CLOSED")}
+            disabled={isUpdating || isDeleting}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isUpdating ? "处理中..." : "标记为已解决"}
+          </button>
+        )}
+        {canDelete && (
+          <button
+            onClick={handleDeleteIssue}
+            disabled={isDeleting || isUpdating}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDeleting ? "删除中..." : "删除问题"}
+          </button>
+        )}
       </div>
 
       {/* 回复列表 */}
@@ -200,7 +212,9 @@ export default function IssueDetail({ issue, currentUser }) {
                     {formatDate(reply.createdAt)}
                   </div>
                 </div>
-                <p className="whitespace-pre-wrap">{reply.content}</p>
+                <p className="whitespace-pre-wrap break-words">
+                  {reply.content}
+                </p>
               </div>
             ))}
           </div>
@@ -227,4 +241,3 @@ export default function IssueDetail({ issue, currentUser }) {
     </div>
   );
 }
- 

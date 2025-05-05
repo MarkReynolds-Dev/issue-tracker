@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
-import { cookies } from "next/headers";
-import { verifyToken } from "@/app/lib/auth";
+import { getCurrentUser } from "@/app/lib/auth";
 
 // 创建问题回复
 export async function POST(request, { params }) {
   try {
-    const id = params?.id;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: "问题ID不能为空" }, { status: 400 });
@@ -21,20 +20,10 @@ export async function POST(request, { params }) {
     }
 
     // 获取当前用户
-    const cookieStore = cookies();
-    const token = await cookieStore.get("token")?.value;
+    const currentUser = await getCurrentUser();
 
-    if (!token) {
+    if (!currentUser) {
       return NextResponse.json({ error: "请先登录后再操作" }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "会话已过期，请重新登录" },
-        { status: 401 }
-      );
     }
 
     // 查询问题是否存在
@@ -47,9 +36,6 @@ export async function POST(request, { params }) {
     }
 
     // 验证权限
-    // 1. 如果是管理员，可以回复任何问题
-    // 2. 如果是普通用户，只能回复自己的问题
-    // 3. 如果问题已关闭，则不能再回复
     if (issue.status === "CLOSED") {
       return NextResponse.json(
         { error: "问题已关闭，无法回复" },
@@ -57,9 +43,9 @@ export async function POST(request, { params }) {
       );
     }
 
-    if (decoded.role !== "ADMIN" && issue.userId !== decoded.id) {
+    if (currentUser.role !== "ADMIN" && issue.userId !== currentUser.id) {
       return NextResponse.json(
-        { error: "普通用户只能回复自己的问题" },
+        { error: "您没有权限回复此问题" },
         { status: 403 }
       );
     }
@@ -69,7 +55,7 @@ export async function POST(request, { params }) {
       data: {
         content,
         issueId: id,
-        userId: decoded.id,
+        userId: currentUser.id,
       },
       include: {
         user: {
@@ -84,7 +70,7 @@ export async function POST(request, { params }) {
     });
 
     // 如果是管理员回复，自动将问题状态更新为解决中
-    if (decoded.role === "ADMIN" && issue.status === "PENDING") {
+    if (currentUser.role === "ADMIN" && issue.status === "PENDING") {
       await prisma.issue.update({
         where: { id },
         data: { status: "IN_PROGRESS" },
@@ -94,6 +80,8 @@ export async function POST(request, { params }) {
     return NextResponse.json(reply, { status: 201 });
   } catch (error) {
     console.error("创建回复失败:", error);
-    return NextResponse.json({ error: "创建回复时出现错误" }, { status: 500 });
+    const errorMessage =
+      error instanceof Error ? error.message : "创建回复时出现未知错误";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -1,36 +1,28 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/db";
-import { cookies } from "next/headers";
-import { verifyToken, verifyPassword, hashPassword } from "@/app/lib/auth";
+// import { cookies } from "next/headers"; // No longer needed directly
+// import { verifyToken, verifyPassword, hashPassword } from "@/app/lib/auth"; // verifyToken not needed directly
+import { getCurrentUser, verifyPassword, hashPassword } from "@/app/lib/auth"; // Import getCurrentUser
 
 // 修改密码
 export async function PUT(request, { params }) {
   try {
-    const id = params?.id;
+    // Await params directly
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: "用户ID不能为空" }, { status: 400 });
     }
 
-    // 验证用户身份
-    const cookieStore = cookies();
-    const token = await cookieStore.get("token")?.value;
+    // 验证用户身份 (使用 getCurrentUser)
+    const accessingUser = await getCurrentUser();
 
-    if (!token) {
+    if (!accessingUser) {
       return NextResponse.json({ error: "未授权" }, { status: 401 });
     }
 
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "会话已过期，请重新登录" },
-        { status: 401 }
-      );
-    }
-
     // 只能修改自己的密码，除非是管理员
-    if (decoded.id !== id && decoded.role !== "ADMIN") {
+    if (accessingUser.id !== id && accessingUser.role !== "ADMIN") {
       return NextResponse.json({ error: "无权操作" }, { status: 403 });
     }
 
@@ -53,23 +45,23 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // 检查用户是否存在
-    const user = await prisma.user.findUnique({
-      where: { id },
+    // 检查用户是否存在 (目标用户)
+    const targetUser = await prisma.user.findUnique({
+      where: { id }, // id is the target user's id from params
       select: {
         id: true,
-        password: true,
+        password: true, // Need the target user's password hash
       },
     });
 
-    if (!user) {
+    if (!targetUser) {
       return NextResponse.json({ error: "用户不存在" }, { status: 404 });
     }
 
-    // 验证当前密码
+    // 验证当前密码 (验证 targetUser 的密码)
     const isPasswordValid = await verifyPassword(
       currentPassword,
-      user.password
+      targetUser.password
     );
 
     if (!isPasswordValid) {
@@ -79,16 +71,17 @@ export async function PUT(request, { params }) {
     // 生成新密码的哈希值
     const hashedNewPassword = await hashPassword(newPassword);
 
-    // 更新密码
+    // 更新密码 (更新 targetUser 的密码)
     await prisma.user.update({
-      where: { id },
+      where: { id }, // id is the target user's id
       data: { password: hashedNewPassword },
     });
 
     return NextResponse.json({ message: "密码修改成功" });
   } catch (error) {
     console.error("修改密码失败:", error);
-    return NextResponse.json({ error: "修改密码时出现错误" }, { status: 500 });
+    const errorMessage =
+      error instanceof Error ? error.message : "修改密码时出现未知错误";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
- 

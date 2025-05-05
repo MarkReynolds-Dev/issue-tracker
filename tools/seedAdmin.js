@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 // 配置管理员信息
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@issue-tracker.app";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || generateRandomPassword(12);
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin123";
 
 // 生成密码哈希 (与 app/lib/auth.js 中的 hashPassword 保持一致)
 async function hashPassword(password) {
@@ -13,23 +13,12 @@ async function hashPassword(password) {
   return await bcrypt.hash(password, saltRounds);
 }
 
-// 生成随机密码
+// 不再需要随机密码生成函数
+/*
 function generateRandomPassword(length) {
-  const charset =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-  let password = "";
-  for (let i = 0, n = charset.length; i < length; ++i) {
-    password += charset.charAt(Math.floor(Math.random() * n));
-  }
-  // 确保包含至少一个数字和一个特殊字符以增加复杂度
-  if (!/\d/.test(password)) {
-    password += Math.floor(Math.random() * 10);
-  }
-  if (!/[!@#$%^&*]/.test(password)) {
-    password += "!@#$%^&*"[Math.floor(Math.random() * 8)];
-  }
-  return password.slice(0, length); // 保证长度
+  // ... (代码注释掉或删除)
 }
+*/
 
 async function main() {
   console.log("开始检查并创建管理员账户...");
@@ -78,10 +67,10 @@ async function main() {
 
     console.log("管理员账户创建成功!");
     console.log(`  邮箱: ${adminUser.email}`);
-    // 重要提示：只在环境变量未设置时显示生成的密码
+    // 修改日志，说明使用的是默认密码或环境变量密码
     if (!process.env.ADMIN_PASSWORD) {
-      console.log(`  初始密码: ${ADMIN_PASSWORD}`);
-      console.warn("  请立即使用此密码登录并修改密码！");
+      console.log(`  密码: 使用默认密码 ("Admin123")`);
+      console.warn("  强烈建议您在首次登录后修改此默认密码！");
     } else {
       console.log("  密码: [使用环境变量 ADMIN_PASSWORD]");
     }
